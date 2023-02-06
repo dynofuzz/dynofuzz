@@ -45,7 +45,7 @@ Then you can see a visualized model structure in `dynofuzz_output/graph.png`:
 
 To run fuzzing for 1 minute:
 
-```
+```shell
 export PYTHONPATH=$(pwd):$(pwd)/autoinf
 export CUDA_VISIBLE_DEVICES="" # GPU is not needed
 
