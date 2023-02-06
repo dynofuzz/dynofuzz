@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.SUBMODULE_AUTOINF }}
+          submodules: recursive
+      - uses: ./.github/actions/setup
+        with:
+          mode: all
+
+      - name: Test core
+        run: |
+          pytest tests/core
+      - name: Test torch
+        run: |
+          pytest tests/torch
+      - name: Test TensorFlow
+        run: |
+          pytest tests/tensorflow
+      - name: Test CLI [model_gen + model_exec]
+        run: |
+          yes | python dynofuzz/cli/model_gen.py debug.viz=true model.type=torch
+          yes | python dynofuzz/cli/model_gen.py model.type=onnx
+          python dynofuzz/cli/model_exec.py model.type=onnx backend.type=onnxruntime model.path=dynofuzz_output/model.onnx
+          yes | python dynofuzz/cli/model_gen.py model.type=tensorflow
+          python dynofuzz/cli/model_exec.py model.type=tensorflow backend.type=xla model.path=dynofuzz_output/model/
+      - name: Test CLI [fuzz]
+        run: |
+          yes | python dynofuzz/cli/fuzz.py fuzz.time=10s fuzz.root=fuzz_report model.type=tensorflow backend.type=xla filter.type="[nan,inf,test_fn,test_cls]" filter.patch=./tests/mock/filter_patch.py
